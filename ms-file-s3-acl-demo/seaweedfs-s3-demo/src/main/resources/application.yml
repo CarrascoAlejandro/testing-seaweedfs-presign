@@ -1,0 +1,8 @@
+server:
+  port: 8080
+
+seaweedfs:
+  # Internal endpoint used by S3 clients for actual reads/writes (Docker network)
+  endpoint: ${SEAWEEDFS_ENDPOINT:http://localhost:8333}
+  # Public endpoint embedded in presigned URLs (must be reachable by the end-user)
+  public-endpoint: ${SEAWEEDFS_PUBLIC_ENDPOINT:http://localhost:8333}

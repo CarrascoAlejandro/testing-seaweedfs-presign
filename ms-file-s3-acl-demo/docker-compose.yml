@@ -1,0 +1,57 @@
+services:
+
+  # ── SeaweedFS: master + volume + filer + S3 gateway in one process ──────────
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    ports:
+      - "9333:9333"   # master
+      - "8080:8080"   # volume
+      - "8888:8888"   # filer
+      - "8333:8333"   # S3 API (also reachable from host for presigned PUTs)
+    command: >
+      server
+        -dir=/data
+        -filer
+        -s3
+        -s3.config=/config/s3.json
+        -ip.bind=0.0.0.0
+    volumes:
+      - ./config:/config
+      - seaweedfs-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9333/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # ── Init job: creates the inbox and processed buckets then exits ─────────────
+  seaweedfs-init:
+    image: amazon/aws-cli:latest
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+    entrypoint: ["sh", "/scripts/init.sh"]
+    environment:
+      AWS_ACCESS_KEY_ID: admin-access-key
+      AWS_SECRET_ACCESS_KEY: admin-secret-key
+      AWS_DEFAULT_REGION: us-east-1
+    volumes:
+      - ./scripts:/scripts
+
+  # ── Demo Spring Boot app ──────────────────────────────────────────────────────
+  demo-app:
+    build: ./seaweedfs-s3-demo
+    ports:
+      - "8090:8080"   # exposed on 8090 to avoid conflict with SeaweedFS volume port
+    depends_on:
+      seaweedfs-init:
+        condition: service_completed_successfully
+    environment:
+      # Internal Docker network endpoint for actual S3 reads/writes
+      SEAWEEDFS_ENDPOINT: http://seaweedfs:8333
+      # Public endpoint embedded in presigned URLs (must be reachable from host)
+      SEAWEEDFS_PUBLIC_ENDPOINT: http://localhost:8333
+
+volumes:
+  seaweedfs-data:

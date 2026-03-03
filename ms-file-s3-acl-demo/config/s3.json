@@ -1,0 +1,59 @@
+{
+  "identities": [
+    {
+      "name": "client-uploader",
+      "credentials": [
+        {
+          "accessKey": "client-access-key",
+          "secretKey": "client-secret-key"
+        }
+      ],
+      "actions": [
+        "s3:PutObject:inbox/*",
+        "s3:AbortMultipartUpload:inbox/*",
+        "s3:ListMultipartUploadParts:inbox/*",
+        "s3:CreateMultipartUpload:inbox/*"
+      ]
+    },
+    {
+      "name": "processor-service",
+      "credentials": [
+        {
+          "accessKey": "processor-access-key",
+          "secretKey": "processor-secret-key"
+        }
+      ],
+      "actions": [
+        "s3:GetObject:inbox/*",
+        "s3:ListBucket:inbox",
+        "s3:PutObject:processed/*",
+        "s3:DeleteObject:processed/*"
+      ]
+    },
+    {
+      "name": "reader-service",
+      "credentials": [
+        {
+          "accessKey": "reader-access-key",
+          "secretKey": "reader-secret-key"
+        }
+      ],
+      "actions": [
+        "s3:GetObject:processed/*",
+        "s3:ListBucket:processed"
+      ]
+    },
+    {
+      "name": "admin",
+      "credentials": [
+        {
+          "accessKey": "admin-access-key",
+          "secretKey": "admin-secret-key"
+        }
+      ],
+      "actions": [
+        "Admin"
+      ]
+    }
+  ]
+}
