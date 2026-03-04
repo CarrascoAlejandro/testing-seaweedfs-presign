@@ -1,8 +1,11 @@
 package com.example.seaweedfs.controller;
 
 import com.example.seaweedfs.service.ClientUploadService;
+import com.example.seaweedfs.service.ProbeService;
 import com.example.seaweedfs.service.ProcessorService;
 import com.example.seaweedfs.service.ReaderService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,13 +29,16 @@ public class DemoController {
     private final ClientUploadService clientUploadService;
     private final ProcessorService processorService;
     private final ReaderService readerService;
+    private final ProbeService probeService;
 
     public DemoController(ClientUploadService clientUploadService,
                           ProcessorService processorService,
-                          ReaderService readerService) {
+                          ReaderService readerService,
+                          ProbeService probeService) {
         this.clientUploadService = clientUploadService;
         this.processorService = processorService;
         this.readerService = readerService;
+        this.probeService = probeService;
     }
 
     // ── client-uploader ───────────────────────────────────────────────────────
@@ -51,9 +57,10 @@ public class DemoController {
         return processorService.listInbox();
     }
 
-    /** Copies an object from inbox to processed. */
-    @PostMapping("/process/{key}")
-    public String process(@PathVariable String key) {
+    /** Copies an object from inbox to processed. Key may contain path separators (e.g. folder/file.png). */
+    @PostMapping("/process/**")
+    public String process(HttpServletRequest request) {
+        String key = request.getRequestURI().substring("/demo/process/".length());
         return processorService.process(key);
     }
 
@@ -65,9 +72,28 @@ public class DemoController {
         return readerService.listProcessed();
     }
 
-    /** Returns the text content of an object in processed. */
-    @GetMapping("/processed/{key}")
-    public String readProcessed(@PathVariable String key) {
-        return readerService.read(key);
+    /** Returns the raw bytes of an object in processed. Key may contain path separators. */
+    @GetMapping("/processed/**")
+    public ResponseEntity<byte[]> readProcessed(HttpServletRequest request) {
+        String key = request.getRequestURI().substring("/demo/processed/".length());
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/octet-stream")
+                .body(readerService.read(key));
+    }
+
+    // ── probe: unauthorized access verification ───────────────────────────────
+
+    /** reader-service (Read/List processed only) tries to GET from inbox — expects 403. */
+    @GetMapping("/probe/reader-reads-inbox")
+    public ResponseEntity<String> probeReaderReadsInbox(@RequestParam String key) {
+        int status = probeService.readerReadsInbox(key);
+        return ResponseEntity.status(status).body("SeaweedFS returned HTTP " + status);
+    }
+
+    /** processor-service (Read/List inbox, Write processed) tries to PUT to inbox — expects 403. */
+    @PostMapping("/probe/processor-writes-inbox")
+    public ResponseEntity<String> probeProcessorWritesInbox(@RequestParam String key) {
+        int status = probeService.processorWritesInbox(key);
+        return ResponseEntity.status(status).body("SeaweedFS returned HTTP " + status);
     }
 }

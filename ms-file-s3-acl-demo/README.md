@@ -24,10 +24,7 @@ SeaweedFS implements S3-compatible IAM via its filer component. Access control w
         }
       ],
       "actions": [
-        "s3:PutObject:inbox/*",
-        "s3:AbortMultipartUpload:inbox/*",
-        "s3:ListMultipartUploadParts:inbox/*",
-        "s3:CreateMultipartUpload:inbox/*"
+        "Write:inbox"
       ]
     },
     {
@@ -39,10 +36,9 @@ SeaweedFS implements S3-compatible IAM via its filer component. Access control w
         }
       ],
       "actions": [
-        "s3:GetObject:inbox/*",
-        "s3:ListBucket:inbox",
-        "s3:PutObject:processed/*",
-        "s3:DeleteObject:processed/*"
+        "Read:inbox",
+        "List:inbox",
+        "Write:processed"
       ]
     },
     {
@@ -54,8 +50,8 @@ SeaweedFS implements S3-compatible IAM via its filer component. Access control w
         }
       ],
       "actions": [
-        "s3:GetObject:processed/*",
-        "s3:ListBucket:processed"
+        "Read:processed",
+        "List:processed"
       ]
     },
     {
@@ -113,6 +109,25 @@ SeaweedFS implements S3-compatible IAM via its filer component. Access control w
 - S3Presigner for the client identity — presigning is a separate object from S3Client in AWS SDK v2. It only computes the URL locally — no network call until the end-user actually uploads.
 - depends_on: service_completed_successfully — the app waits for seaweedfs-init to finish (buckets exist) before starting.
 
+
+## Lessons Learned
+
+### SeaweedFS `s3.json` does NOT use S3 API action names
+
+The root cause of the `AccessDenied` error was using full S3 API action names (e.g. `"s3:PutObject"`) in `s3.json`, which SeaweedFS silently ignores when using the legacy IAM path.
+
+SeaweedFS's router maps every HTTP request to an internal action constant before calling `CanDo`. Those constants are short strings — not S3 API names:
+
+| Operation | Internal action constant |
+|-----------|--------------------------|
+| PUT/DELETE object | `"Write"` |
+| GET/HEAD object | `"Read"` |
+| ListObjects | `"List"` |
+| All operations | `"Admin"` |
+
+`CanDo` builds a match target like `"Write:inbox/myFile.png"` and compares it against the actions list. An action of `"s3:PutObject:inbox/*"` never matches `"Write:inbox/myFile.png"`, so every request is denied regardless of credentials.
+
+The correct format is `"Write:inbox"` (exact bucket match) or `"Write:inbox/*"` (wildcard). Full S3 API action names like `s3:PutObject` are only used by the separate IAM policy engine (JSON bucket policies), not by the `s3.json` identity file.
 
 ## About techstack
 

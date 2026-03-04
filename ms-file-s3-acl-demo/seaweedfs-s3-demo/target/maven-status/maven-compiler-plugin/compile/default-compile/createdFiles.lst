@@ -1,0 +1,7 @@
+com/example/seaweedfs/service/ReaderService.class
+com/example/seaweedfs/service/ClientUploadService.class
+com/example/seaweedfs/config/SeaweedfsProperties.class
+com/example/seaweedfs/controller/DemoController.class
+com/example/seaweedfs/config/S3ClientConfig.class
+com/example/seaweedfs/SeaweedfsS3DemoApplication.class
+com/example/seaweedfs/service/ProcessorService.class

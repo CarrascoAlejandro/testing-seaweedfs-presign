@@ -9,10 +9,7 @@
         }
       ],
       "actions": [
-        "s3:PutObject:inbox/*",
-        "s3:AbortMultipartUpload:inbox/*",
-        "s3:ListMultipartUploadParts:inbox/*",
-        "s3:CreateMultipartUpload:inbox/*"
+        "Write:inbox"
       ]
     },
     {
@@ -24,10 +21,9 @@
         }
       ],
       "actions": [
-        "s3:GetObject:inbox/*",
-        "s3:ListBucket:inbox",
-        "s3:PutObject:processed/*",
-        "s3:DeleteObject:processed/*"
+        "Read:inbox",
+        "List:inbox",
+        "Write:processed"
       ]
     },
     {
@@ -39,8 +35,8 @@
         }
       ],
       "actions": [
-        "s3:GetObject:processed/*",
-        "s3:ListBucket:processed"
+        "Read:processed",
+        "List:processed"
       ]
     },
     {

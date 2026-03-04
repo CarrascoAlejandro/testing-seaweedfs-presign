@@ -1,0 +1,7 @@
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-s3-acl-demo/seaweedfs-s3-demo/src/main/java/com/example/seaweedfs/SeaweedfsS3DemoApplication.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-s3-acl-demo/seaweedfs-s3-demo/src/main/java/com/example/seaweedfs/config/S3ClientConfig.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-s3-acl-demo/seaweedfs-s3-demo/src/main/java/com/example/seaweedfs/config/SeaweedfsProperties.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-s3-acl-demo/seaweedfs-s3-demo/src/main/java/com/example/seaweedfs/controller/DemoController.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-s3-acl-demo/seaweedfs-s3-demo/src/main/java/com/example/seaweedfs/service/ClientUploadService.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-s3-acl-demo/seaweedfs-s3-demo/src/main/java/com/example/seaweedfs/service/ProcessorService.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-s3-acl-demo/seaweedfs-s3-demo/src/main/java/com/example/seaweedfs/service/ReaderService.java

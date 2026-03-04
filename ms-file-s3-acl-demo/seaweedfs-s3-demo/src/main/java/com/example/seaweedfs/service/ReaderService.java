@@ -28,7 +28,7 @@ public class ReaderService {
                 .toList();
     }
 
-    public String read(String key) {
-        return client.getObjectAsBytes(r -> r.bucket("processed").key(key)).asUtf8String();
+    public byte[] read(String key) {
+        return client.getObjectAsBytes(r -> r.bucket("processed").key(key)).asByteArray();
     }
 }
