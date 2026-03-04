@@ -1,0 +1,36 @@
+meta {
+  name: 2 Upload Directly to Filer
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{nativeUploadUrl}}
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{nativeUploadToken}}
+}
+
+body:multipart-form {
+  file: @file(/home/alejandro/Pictures/wapuu-dev-300x265.png)
+}
+
+vars:pre-request {
+  nativeUploadUrl: http://localhost:8888/buckets/inbox/images/testImage3.png
+  nativeUploadToken: eyJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NzI2NTQwNTcsImV4cCI6MTc3MjY1NDA4N30.aZFOEpVsWkftRFbFWMZcveDInPI3hkVH5Fje87WDlNM
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:pre-request {
+  // Prefer the fresh values produced by test 1 over the saved fallback above
+  const freshUrl   = bru.getGlobalEnvVar("nativeUploadUrl");
+  const freshToken = bru.getGlobalEnvVar("nativeUploadToken");
+  if (freshUrl)   bru.setVar("nativeUploadUrl",   freshUrl);
+  if (freshToken) bru.setVar("nativeUploadToken", freshToken);
+}

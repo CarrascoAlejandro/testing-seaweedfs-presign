@@ -1,0 +1,26 @@
+meta {
+  name: 1 Get Upload Token
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{nativeBaseUrl}}/upload/token?key={{testKey}}
+  body: none
+  auth: none
+}
+
+params:query {
+  key: {{testKey}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.uploadUrl: isDefined
+  res.body.token: isDefined
+}
+
+script:post-response {
+  bru.setGlobalEnvVar("nativeUploadUrl", res.body.uploadUrl);
+  bru.setGlobalEnvVar("nativeUploadToken", res.body.token);
+}

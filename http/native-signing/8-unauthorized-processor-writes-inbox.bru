@@ -1,0 +1,21 @@
+meta {
+  name: 8 Unauthorized — Processor Writes Inbox
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{nativeBaseUrl}}/probe/processor-writes-inbox?key={{testKey}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("application layer denies PROCESSOR write access to inbox — 403", function() {
+    expect(res.status).to.equal(403);
+  });
+
+  test("response body identifies the violated rule", function() {
+    expect(res.body).to.include("PROCESSOR");
+  });
+}

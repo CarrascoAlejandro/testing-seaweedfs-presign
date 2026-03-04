@@ -1,0 +1,25 @@
+meta {
+  name: 4 List Processed (reader)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{nativeBaseUrl}}/reader/processed
+  body: none
+  auth: none
+}
+
+headers {
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("response is a non-empty array", function() {
+    expect(res.body).to.be.an("array");
+    expect(res.body.length).to.be.greaterThan(0);
+  });
+}

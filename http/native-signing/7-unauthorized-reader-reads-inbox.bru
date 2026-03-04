@@ -1,0 +1,21 @@
+meta {
+  name: 7 Unauthorized — Reader Reads Inbox
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{nativeBaseUrl}}/probe/reader-reads-inbox?key={{testKey}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("application layer denies READER access to inbox — 403", function() {
+    expect(res.status).to.equal(403);
+  });
+
+  test("response body identifies the violated rule", function() {
+    expect(res.body).to.include("READER");
+  });
+}

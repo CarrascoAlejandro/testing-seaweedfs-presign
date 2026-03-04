@@ -1,0 +1,26 @@
+meta {
+  name: 3 Process File (inbox → processed)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{nativeBaseUrl}}/processor/process?key={{testKey}}
+  body: none
+  auth: none
+}
+
+params:query {
+  key: {{testKey}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("returns success message with byte count", function() {
+    expect(res.body).to.be.a("string");
+    expect(res.body).to.include("bytes");
+  });
+}

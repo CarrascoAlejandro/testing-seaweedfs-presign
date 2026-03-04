@@ -1,0 +1,24 @@
+meta {
+  name: 5 Read Processed File (reader)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{nativeBaseUrl}}/reader/processed/{{testKey}}
+  body: none
+  auth: none
+}
+
+headers {
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("returns file bytes", function() {
+    expect(res.status).to.equal(200);
+  });
+}

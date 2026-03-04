@@ -1,0 +1,25 @@
+meta {
+  name: 2 List Inbox (processor)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{nativeBaseUrl}}/processor/inbox
+  body: none
+  auth: none
+}
+
+headers {
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("response is a non-empty array", function() {
+    expect(res.body).to.be.an("array");
+    expect(res.body.length).to.be.greaterThan(0);
+  });
+}
