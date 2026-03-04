@@ -1,11 +1,13 @@
 package com.example.seaweedfs.service;
 
+import com.example.seaweedfs.controller.PresignResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
 import java.time.Duration;
+import java.util.UUID;
 
 /**
  * Uses the client-uploader identity, which has PUT-only access to inbox.
@@ -20,13 +22,27 @@ public class ClientUploadService {
         this.presigner = presigner;
     }
 
-    public String generatePresignedPutUrl(String objectKey) {
+    /**
+     * Generates a presigned PUT URL for the given key hint. The actual S3 key is prefixed with a UUID to avoid collisions.
+     * @param keyHint the route where the client wishes to upload (e.g. "hello.txt" or "folder/image.png"). This is only a hint; the final key is prefixed with a UUID.
+     * @return
+     */
+    public PresignResponse generatePresignedPutUrl(String keyHint) {
+        String folderPath = keyHint.contains("/") ? keyHint.substring(0, keyHint.lastIndexOf('/')) : "";
+        String fileName = keyHint.contains("/") ? keyHint.substring(keyHint.lastIndexOf('/') + 1) : keyHint;
+        String key = new StringBuilder()
+                .append(folderPath)
+                .append(folderPath.isEmpty() ? "" : "/")
+                .append(UUID.randomUUID())
+                .append("-")
+                .append(fileName)
+                .toString();
         PresignedPutObjectRequest presigned = presigner.presignPutObject(r -> r
                 .signatureDuration(Duration.ofMinutes(15))
                 .putObjectRequest(put -> put
                         .bucket("inbox")
-                        .key(objectKey)));
+                        .key(key)));
 
-        return presigned.url().toString();
+        return new PresignResponse(presigned.url().toString(), key);
     }
 }

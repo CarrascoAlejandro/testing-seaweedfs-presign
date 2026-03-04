@@ -43,9 +43,9 @@ public class DemoController {
 
     // ── client-uploader ───────────────────────────────────────────────────────
 
-    /** Returns a presigned PUT URL valid for 15 minutes. Use it to upload directly to inbox. */
+    /** Returns a presigned PUT URL valid for 15 minutes, with a UUID-prefixed key to avoid collisions. */
     @GetMapping("/presign")
-    public String presign(@RequestParam String key) {
+    public PresignResponse presign(@RequestParam String key) {
         return clientUploadService.generatePresignedPutUrl(key);
     }
 
