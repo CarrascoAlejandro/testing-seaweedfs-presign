@@ -16,10 +16,15 @@ public class SeaweedfsProperties {
 
     public static class Filer {
         private String endpoint;
+        /** Client-reachable URL, may differ from internal endpoint in Docker environments. */
+        private String publicEndpoint;
         private Buckets buckets = new Buckets();
 
         public String getEndpoint() { return endpoint; }
         public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
+
+        public String getPublicEndpoint() { return publicEndpoint != null ? publicEndpoint : endpoint; }
+        public void setPublicEndpoint(String publicEndpoint) { this.publicEndpoint = publicEndpoint; }
 
         public Buckets getBuckets() { return buckets; }
         public void setBuckets(Buckets buckets) { this.buckets = buckets; }

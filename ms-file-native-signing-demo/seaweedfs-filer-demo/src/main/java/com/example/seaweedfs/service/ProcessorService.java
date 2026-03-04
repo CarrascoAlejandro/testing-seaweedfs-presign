@@ -47,10 +47,9 @@ public class ProcessorService {
         auth.assertCanRead(CallerRole.PROCESSOR, sourcePath);
         auth.assertCanWrite(CallerRole.PROCESSOR, destPath);
 
-        byte[] raw         = filer.download(sourcePath);
-        byte[] transformed = new String(raw).toUpperCase().getBytes();
-        filer.upload(destPath, transformed, "text/plain");
+        byte[] raw = filer.download(sourcePath);
+        filer.upload(destPath, raw, "application/octet-stream");
 
-        return "Processed %s -> %s (%d bytes)".formatted(sourcePath, destPath, transformed.length);
+        return "Processed %s -> %s (%d bytes)".formatted(sourcePath, destPath, raw.length);
     }
 }

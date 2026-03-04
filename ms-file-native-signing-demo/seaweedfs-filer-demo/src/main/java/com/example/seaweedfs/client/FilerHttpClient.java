@@ -4,8 +4,11 @@ import com.example.seaweedfs.config.SeaweedfsProperties;
 import com.example.seaweedfs.service.FilerJwtTokenService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -34,11 +37,20 @@ public class FilerHttpClient {
     public void upload(String filerPath, byte[] data, String contentType) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + tokenService.generateWriteToken());
-        headers.setContentType(MediaType.parseMediaType(contentType));
+
+        LinkedMultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new ByteArrayResource(data) {
+            @Override
+            public String getFilename() {
+                return filerPath.substring(filerPath.lastIndexOf('/') + 1);
+            }
+        });
+
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         http.exchange(
             filerEndpoint + filerPath,
             HttpMethod.POST,
-            new HttpEntity<>(data, headers),
+            new HttpEntity<>(body, headers),
             Void.class
         );
     }

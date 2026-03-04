@@ -55,9 +55,10 @@ services:
       seaweedfs-init:
         condition: service_completed_successfully
     environment:
-      SEAWEEDFS_FILER_ENDPOINT:   http://seaweedfs-filer:8888
-      SEAWEEDFS_JWT_WRITE_SECRET: your-filer-write-secret-change-me
-      SEAWEEDFS_JWT_READ_SECRET:  your-filer-read-secret-change-me
+      SEAWEEDFS_FILER_ENDPOINT:        http://seaweedfs-filer:8888
+      SEAWEEDFS_FILER_PUBLIC_ENDPOINT: http://localhost:8888
+      SEAWEEDFS_JWT_WRITE_SECRET:      your-filer-write-secret-change-me
+      SEAWEEDFS_JWT_READ_SECRET:       your-filer-read-secret-change-me
 
 volumes:
   master-data:

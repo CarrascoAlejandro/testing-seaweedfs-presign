@@ -79,9 +79,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SEAWEEDFS_FILER_ENDPOINT:    http://seaweedfs-filer:8888
-      SEAWEEDFS_JWT_WRITE_SECRET:  your-filer-write-secret-change-me
-      SEAWEEDFS_JWT_READ_SECRET:   your-filer-read-secret-change-me
+      SEAWEEDFS_FILER_ENDPOINT:        http://seaweedfs-filer:8888
+      SEAWEEDFS_FILER_PUBLIC_ENDPOINT: http://localhost:8888
+      SEAWEEDFS_JWT_WRITE_SECRET:      your-filer-write-secret-change-me
+      SEAWEEDFS_JWT_READ_SECRET:       your-filer-read-secret-change-me
     depends_on:
       seaweedfs-init:
         condition: service_completed_successfully
@@ -171,7 +172,8 @@ spring:
 
 seaweedfs:
   filer:
-    endpoint: http://seaweedfs-filer:8888
+    endpoint: http://seaweedfs-filer:8888        # internal (service-to-service)
+    public-endpoint: http://localhost:8888        # returned to clients for direct upload
     buckets:
       inbox: /buckets/inbox
       processed: /buckets/processed
@@ -461,30 +463,33 @@ public class ReaderService {
 ```java
 // service/ClientUploadService.java
 //
-// The Filer JWT approach has no native equivalent of presigned URLs.
-// The client must upload through the application, which acts as a proxy
-// and generates a fresh write token for each forwarded request.
-// The application is in the data path.
+// Issues a single-use upload token for direct client-to-filer uploads.
+// The application is the authorization gatekeeper but is NOT in the data path.
+// "Single-use" semantics are enforced by the short token TTL (default 30 s).
+// SeaweedFS Filer JWTs carry no path scope — the path binding is a convention
+// enforced at issuance time only.
 @Service
 public class ClientUploadService {
 
     private final FilerAuthorizationService auth;
-    private final FilerHttpClient           filer;
+    private final FilerJwtTokenService      tokenService;
     private final String                    inboxPath;
+    private final String                    publicEndpoint;
 
     public ClientUploadService(
             FilerAuthorizationService auth,
-            FilerHttpClient filer,
+            FilerJwtTokenService tokenService,
             SeaweedfsProperties props) {
-        this.auth      = auth;
-        this.filer     = filer;
-        this.inboxPath = props.getFiler().getBuckets().getInbox();
+        this.auth           = auth;
+        this.tokenService   = tokenService;
+        this.inboxPath      = props.getFiler().getBuckets().getInbox();
+        this.publicEndpoint = props.getFiler().getPublicEndpoint();
     }
 
-    public void upload(String objectKey, byte[] data, String contentType) {
+    public UploadTokenResponse issueUploadToken(String objectKey) {
         String path = inboxPath + "/" + objectKey;
         auth.assertCanWrite(CallerRole.CLIENT, path);
-        filer.upload(path, data, contentType);
+        return new UploadTokenResponse(publicEndpoint + path, tokenService.generateWriteToken());
     }
 }
 ```
@@ -513,15 +518,12 @@ public class DemoController {
         this.readerService       = readerService;
     }
 
-    // CLIENT: proxied upload (no presigned URL available)
-    // POST /upload?key=uploads/hello.txt
-    @PostMapping("/upload")
-    public ResponseEntity<String> upload(
-            @RequestParam String key,
-            @RequestParam(defaultValue = "application/octet-stream") String contentType,
-            @RequestBody byte[] data) {
-        clientUploadService.upload(key, data, contentType);
-        return ResponseEntity.ok("Uploaded to inbox: " + key);
+    // CLIENT: issue a single-use upload token; client uploads directly to filer
+    // POST /upload/token?key=hello.txt
+    // Response: { "uploadUrl": "http://localhost:8888/buckets/inbox/hello.txt", "token": "<jwt>" }
+    @PostMapping("/upload/token")
+    public ResponseEntity<UploadTokenResponse> requestUploadToken(@RequestParam String key) {
+        return ResponseEntity.ok(clientUploadService.issueUploadToken(key));
     }
 
     // PROCESSOR: trigger pipeline
@@ -551,7 +553,11 @@ These differences should be understood before implementing, as they affect how t
 
 **Token scope.** Every valid write token grants write access to the entire Filer filesystem. The application's `FilerAuthorizationService` is the only mechanism preventing a caller from writing to an unintended path. If `assertCanWrite` is bypassed or misconfigured, no Filer-level safeguard catches it.
 
-**Client uploads are proxied.** There is no mechanism in the Filer JWT model to issue a time-limited, path-scoped upload credential that a client can use directly. All client uploads must pass through the application, which means the application is in the data path and will be the bottleneck for large file uploads.
+**Client uploads go direct.** The application issues a short-lived write JWT via `POST /upload/token` and returns the target filer URL alongside it. The client then POSTs the file bytes directly to SeaweedFS. The application is not in the data path for client uploads; only internal service-to-service operations (processor, reader) are proxied through `FilerHttpClient`.
+
+**Single-use token semantics.** Each token is generated fresh per upload request and expires in 30 seconds. Because SeaweedFS validates only the signature and expiry, path-binding is a convention enforced at issuance time by `FilerAuthorizationService.assertCanWrite`. A holder of a token could theoretically write to any filer path during the TTL window; keep the TTL short and rotate the write secret if tokens are suspected to be leaked. True cryptographic single-use would require a backend JTI blacklist and SeaweedFS webhook support, which is not available.
+
+**`publicEndpoint` vs `endpoint`.** The internal filer endpoint (`http://seaweedfs-filer:8888`) is used for service-to-service calls inside Docker. The public endpoint (`http://localhost:8888`) is what clients outside the Docker network use. Configure `SEAWEEDFS_FILER_PUBLIC_ENDPOINT` to match the externally reachable address in production.
 
 **Token expiry and large files.** The token is generated at request time and attached to the HTTP request. For large uploads using chunked or multipart transfer, a single token generated at the start of the request may expire before the transfer completes. The `FilerHttpClient` should be designed to generate tokens as late as possible in the request lifecycle, not at service startup or at the beginning of a batch operation.
 
@@ -567,4 +573,51 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
     }
 }
+```
+
+---
+
+## Lessons Learned
+
+### The filer JWT is a transport credential, not an authorization policy
+
+The most consequential design constraint in this approach: a valid write token grants write access to the **entire filer filesystem**. There is no mechanism in SeaweedFS to scope a JWT to a specific path, bucket, or operation beyond the read/write split. This means the application layer is the sole access control boundary. If `FilerAuthorizationService` is misconfigured, bypassed, or missing, any token holder can read or write any path. This was confirmed by integration tests — a write token issued for `inbox/` can be used directly against the filer to write to `processed/` with a 201 response.
+
+This is the fundamental difference from the S3 ACL approach, where IAM-style policies in `s3.json` enforce per-identity, per-bucket rules at the infrastructure level regardless of application behavior.
+
+### Path-scoped authorization must be done at issuance time, not at the filer
+
+Because the filer does not validate paths, the only moment where the application can enforce a path restriction is when it **issues** the token. Once the token is in the client's hands, the path binding exists only as a convention — the client is trusted to use the URL the application returned. In production this is acceptable when the client is a first-party application under the same trust boundary; it is not acceptable when the token is handed to an untrusted third party.
+
+### Spring MVC `{key}` path variables do not capture slashes — use `{*key}`
+
+`@GetMapping("/reader/processed/{key}")` only captures a single path segment. A key like `images/photo.png` silently routes to `{key} = "images"`, producing a 404 or wrong-file response with no error at the mapping layer. The correct annotation is `@GetMapping("/reader/processed/{*key}")`, which captures the full remaining path. The captured value includes a leading `/` that must be stripped before use.
+
+This applies any time a key can contain a directory component, which is the normal case for files organized into subfolders.
+
+### `{*key}` in Spring MVC captures a leading slash
+
+When using `{*key}`, Spring includes the leading `/` in the captured value (e.g., `/images/photo.png` instead of `images/photo.png`). The handler must strip it explicitly:
+
+```java
+String trimmedKey = key.startsWith("/") ? key.substring(1) : key;
+```
+
+Forgetting this produces a double-slash in the filer path (`/buckets/processed//images/photo.png`), which SeaweedFS accepts but results in a mismatched path that can never be found by a normal lookup.
+
+### Storing file bytes as strings corrupts binary files
+
+The original processor used `new String(raw).toUpperCase().getBytes()` to demonstrate a pipeline transformation. This works for ASCII text but silently corrupts any binary file (images, PDFs, archives) because the `String` constructor interprets the bytes as the JVM default charset, discarding bytes that don't map to valid characters. The processor was changed to copy bytes as-is. Any real transformation pipeline must operate on `byte[]` directly, or use a content-type-aware decoder.
+
+### SeaweedFS auto-creates subdirectories on upload
+
+Uploading to `/buckets/inbox/images/photo.png` when the `images/` subdirectory does not exist succeeds — SeaweedFS creates the intermediate directory automatically. No explicit directory-creation step is required for nested keys. The filer's directory listing (`GET /buckets/inbox/`) returns only **direct children**, so a key `images/photo.png` appears as the entry `images` (a directory), not as the full nested path. Code that checks listings for specific filenames must account for this.
+
+### The `publicEndpoint` / `endpoint` split is required for direct client uploads
+
+Inside Docker, services address the filer as `http://seaweedfs-filer:8888`. That hostname is unreachable by clients outside the Docker network. When the application issues an upload token, it must return the **publicly reachable** URL, not the internal one. A separate `publicEndpoint` config property solves this cleanly. The internal `endpoint` is used for all server-side filer calls; `publicEndpoint` is used only when constructing the URL returned to the client. In a Kubernetes or cloud deployment this distinction maps to a ClusterIP vs. an Ingress or LoadBalancer address.
+
+### Bruno CLI `params:query` does not reliably send parameters with slashes in the value
+
+When a test variable contains a slash (e.g., `testKey: images/photo.png`) and is referenced in a `params:query` block, Bruno CLI may drop the parameter entirely, resulting in a 400 from the server. The workaround is to embed the parameter directly in the URL string: `url: {{baseUrl}}/endpoint?key={{testKey}}`. This is consistent with how other Bruno tests in the suite handle parameterized keys and avoids the encoding ambiguity.
 ```

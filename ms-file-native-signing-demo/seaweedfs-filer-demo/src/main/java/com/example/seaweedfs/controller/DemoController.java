@@ -1,5 +1,6 @@
 package com.example.seaweedfs.controller;
 
+import com.example.seaweedfs.model.UploadTokenResponse;
 import com.example.seaweedfs.service.ClientUploadService;
 import com.example.seaweedfs.service.ProcessorService;
 import com.example.seaweedfs.service.ReaderService;
@@ -14,11 +15,12 @@ import java.util.List;
  * can be exercised without a custom client.
  *
  * Typical happy-path flow:
- *   1. POST /upload?key=hello.txt      (body: any text) → proxied upload via CLIENT role
- *   2. GET  /processor/inbox           → confirm file appears (PROCESSOR view)
- *   3. POST /processor/process?key=hello.txt → copy inbox→processed (content uppercased)
- *   4. GET  /reader/processed          → confirm file appears (READER view)
- *   5. GET  /reader/processed/hello.txt → read content
+ *   1. POST /upload/token?key=hello.txt → backend authorizes and returns {uploadUrl, token}
+ *   2. Client POSTs file bytes directly to uploadUrl with Authorization: Bearer {token}
+ *   3. GET  /processor/inbox            → confirm file appears (PROCESSOR view)
+ *   4. POST /processor/process?key=hello.txt → copy inbox→processed (content uppercased)
+ *   5. GET  /reader/processed           → confirm file appears (READER view)
+ *   6. GET  /reader/processed/hello.txt → read content
  */
 @RestController
 public class DemoController {
@@ -36,15 +38,11 @@ public class DemoController {
         this.readerService       = readerService;
     }
 
-    // ── CLIENT: proxied upload ─────────────────────────────────────────────
+    // ── CLIENT: issue single-use upload token ─────────────────────────────
 
-    @PostMapping("/upload")
-    public ResponseEntity<String> upload(
-            @RequestParam String key,
-            @RequestParam(defaultValue = "application/octet-stream") String contentType,
-            @RequestBody byte[] data) {
-        clientUploadService.upload(key, data, contentType);
-        return ResponseEntity.ok("Uploaded to inbox: " + key);
+    @PostMapping("/upload/token")
+    public ResponseEntity<UploadTokenResponse> requestUploadToken(@RequestParam String key) {
+        return ResponseEntity.ok(clientUploadService.issueUploadToken(key));
     }
 
     // ── PROCESSOR ─────────────────────────────────────────────────────────
@@ -66,9 +64,11 @@ public class DemoController {
         return readerService.listProcessed();
     }
 
-    @GetMapping("/reader/processed/{key}")
+    // {*key} captures the rest of the path including slashes (e.g. "images/photo.png")
+    @GetMapping("/reader/processed/{*key}")
     public ResponseEntity<byte[]> read(@PathVariable String key) {
-        byte[] data = readerService.readFile(key);
+        String trimmedKey = key.startsWith("/") ? key.substring(1) : key;
+        byte[] data = readerService.readFile(trimmedKey);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(data);

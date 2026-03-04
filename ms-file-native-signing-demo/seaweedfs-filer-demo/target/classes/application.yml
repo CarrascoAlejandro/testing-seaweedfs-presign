@@ -5,6 +5,7 @@ spring:
 seaweedfs:
   filer:
     endpoint: ${SEAWEEDFS_FILER_ENDPOINT:http://localhost:8888}
+    public-endpoint: ${SEAWEEDFS_FILER_PUBLIC_ENDPOINT:http://localhost:8888}
     buckets:
       inbox: /buckets/inbox
       processed: /buckets/processed

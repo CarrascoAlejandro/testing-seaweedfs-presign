@@ -1,0 +1,14 @@
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/SeaweedfsFilerdemoApplication.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/client/FilerHttpClient.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/config/SeaweedfsProperties.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/controller/DemoController.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/controller/GlobalExceptionHandler.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/controller/ProbeController.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/exception/AccessDeniedException.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/model/CallerRole.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/model/UploadTokenResponse.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/service/ClientUploadService.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/service/FilerAuthorizationService.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/service/FilerJwtTokenService.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/service/ProcessorService.java
+/home/alejandro/CIRRUS/promujer/ms-file-concept-proof/ms-file-native-signing-demo/seaweedfs-filer-demo/src/main/java/com/example/seaweedfs/service/ReaderService.java
