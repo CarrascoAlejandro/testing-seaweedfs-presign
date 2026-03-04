@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: seaweedfs-filer-demo
+
+seaweedfs:
+  filer:
+    endpoint: ${SEAWEEDFS_FILER_ENDPOINT:http://localhost:8888}
+    buckets:
+      inbox: /buckets/inbox
+      processed: /buckets/processed
+
+  jwt:
+    write-secret: ${SEAWEEDFS_JWT_WRITE_SECRET:your-filer-write-secret-change-me}
+    read-secret:  ${SEAWEEDFS_JWT_READ_SECRET:your-filer-read-secret-change-me}
+    ttl-seconds:  30

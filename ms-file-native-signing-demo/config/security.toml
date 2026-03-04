@@ -1,0 +1,10 @@
+[cors.allowed_origins]
+values = "*"
+
+[jwt.filer_signing]
+key                   = "your-filer-write-secret-change-me"
+expires_after_seconds = 30
+
+[jwt.filer_signing.read]
+key                   = "your-filer-read-secret-change-me"
+expires_after_seconds = 30

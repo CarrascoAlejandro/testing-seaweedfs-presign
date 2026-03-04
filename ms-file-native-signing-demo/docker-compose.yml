@@ -1,0 +1,65 @@
+services:
+
+  # ── SeaweedFS master ───────────────────────────────────────────────────────
+  seaweedfs-master:
+    image: chrislusf/seaweedfs
+    command: master -mdir=/data
+    volumes:
+      - master-data:/data
+      - ./config/security.toml:/etc/seaweedfs/security.toml:ro
+
+  # ── SeaweedFS volume ───────────────────────────────────────────────────────
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs
+    command: volume -mserver=seaweedfs-master:9333 -dir=/data -port=8080
+    volumes:
+      - volume-data:/data
+      - ./config/security.toml:/etc/seaweedfs/security.toml:ro
+    depends_on:
+      - seaweedfs-master
+
+  # ── SeaweedFS filer ────────────────────────────────────────────────────────
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs
+    command: filer -master=seaweedfs-master:9333
+    ports:
+      - "8888:8888"
+    volumes:
+      - filer-data:/data
+      - ./config/security.toml:/etc/seaweedfs/security.toml:ro
+    depends_on:
+      - seaweedfs-volume
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8888/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # ── Init job: creates filer directories then exits ────────────────────────
+  seaweedfs-init:
+    image: curlimages/curl
+    entrypoint: ["/bin/sh", "/scripts/init-filer.sh"]
+    volumes:
+      - ./scripts:/scripts
+    depends_on:
+      seaweedfs-filer:
+        condition: service_healthy
+
+  # ── Demo Spring Boot app ──────────────────────────────────────────────────
+  demo-app:
+    build: ./seaweedfs-filer-demo
+    ports:
+      - "8080:8080"
+    depends_on:
+      seaweedfs-init:
+        condition: service_completed_successfully
+    environment:
+      SEAWEEDFS_FILER_ENDPOINT:   http://seaweedfs-filer:8888
+      SEAWEEDFS_JWT_WRITE_SECRET: your-filer-write-secret-change-me
+      SEAWEEDFS_JWT_READ_SECRET:  your-filer-read-secret-change-me
+
+volumes:
+  master-data:
+  volume-data:
+  filer-data:
