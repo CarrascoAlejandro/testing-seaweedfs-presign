@@ -1,0 +1,22 @@
+meta {
+  name: 11 Process Folder-Path File (inbox → processed)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{s3BaseUrl}}/demo/process/{{resolvedFolderKey}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("returns success message with folder-path key", function() {
+    expect(res.body).to.be.a("string");
+    expect(res.body).to.include("bytes written to processed");
+  });
+}

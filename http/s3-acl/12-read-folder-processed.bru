@@ -1,0 +1,21 @@
+meta {
+  name: 12 Read Folder-Path File from Processed
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{s3BaseUrl}}/demo/processed/{{resolvedFolderKey}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("folder-path file is readable from processed", function() {
+    expect(res.status).to.equal(200);
+  });
+}

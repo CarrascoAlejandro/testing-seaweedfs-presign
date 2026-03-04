@@ -1,0 +1,28 @@
+meta {
+  name: 3 List Inbox
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{s3BaseUrl}}/demo/inbox
+  body: none
+  auth: none
+}
+
+headers {
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("response is an array", function() {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("inbox contains uploaded file", function() {
+    expect(res.body).to.include("myFile.png");
+  });
+}

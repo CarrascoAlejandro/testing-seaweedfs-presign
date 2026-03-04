@@ -1,0 +1,24 @@
+meta {
+  name: 7 Presign Image Upload URL
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{s3BaseUrl}}/demo/presign?key={{imageKey}}
+  body: none
+  auth: none
+}
+
+params:query {
+  key: {{imageKey}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  bru.setGlobalEnvVar("imagePresignedUrl", res.body.url);
+  bru.setGlobalEnvVar("resolvedImageKey", res.body.key);
+}

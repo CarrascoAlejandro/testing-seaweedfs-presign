@@ -1,0 +1,21 @@
+meta {
+  name: 13 Unauthorized — Reader Reads Inbox
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{s3BaseUrl}}/demo/probe/reader-reads-inbox?key={{testKey}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("SeaweedFS denies reader access to inbox with 403", function() {
+    expect(res.status).to.equal(403);
+  });
+
+  test("response body confirms the SeaweedFS status code", function() {
+    expect(res.body).to.include("403");
+  });
+}

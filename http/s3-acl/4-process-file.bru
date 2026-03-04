@@ -1,0 +1,25 @@
+meta {
+  name: 4 Process File (inbox → processed)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{s3BaseUrl}}/demo/process/{{resolvedTestKey}}
+  body: none
+  auth: none
+}
+
+headers {
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("returns success message", function() {
+    expect(res.body).to.be.a("string");
+    expect(res.body).to.include("bytes written to processed");
+  });
+}
