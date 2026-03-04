@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is a concept-proof repository for the `ms-file` microservice in the Cirrus/ProMujer platform. The `.github/skills/` folder contains the authoritative reference documentation for building microservices in this platform. The `ms-file-s3-acl-demo/` subdirectory contains a SeaweedFS S3 ACL demonstration.
+This is a concept-proof repository for the `ms-file` microservice in the Cirrus/ProMujer platform. The `.github/skills/` folder contains the authoritative reference documentation for building microservices in this platform. Two demo subdirectories compare approaches to SeaweedFS file storage access control.
 
 ## Build Commands
 
@@ -134,18 +134,32 @@ bruno run http/ --env dev
 bruno run http/transfer/request-transfer.bru --env dev
 ```
 
-## S3 ACL Demo (`ms-file-s3-acl-demo/`)
+## Demo Projects
 
-Demonstrates bucket-level ACL with SeaweedFS (S3-compatible). Key design decisions:
+### S3 ACL Demo (`ms-file-s3-acl-demo/`)
+
+Uses SeaweedFS S3 gateway with IAM-style ACL (`s3.json`). Authorization is enforced at the infrastructure level. Key design decisions:
 - One `S3Client` bean per identity (client-uploader, processor-service, reader-service, admin)
-- `forcePathStyle(true)` required — SeaweedFS doesn't support virtual-hosted style URLs
-- `S3Presigner` is separate from `S3Client` for generating presigned PUT URLs
-- Docker Compose uses `depends_on: service_completed_successfully` so the app waits for bucket init
+- `pathStyleAccessEnabled(true)` required — SeaweedFS doesn't support virtual-hosted style URLs
+- `S3Presigner` is separate from `S3Client`; uses `publicEndpoint` (localhost) so presigned URLs are reachable from the host
+- Bucket init uses `amazon/aws-cli` container with `depends_on: service_completed_successfully`
 
-Start the demo:
 ```bash
-cd ms-file-s3-acl-demo
-docker compose up
+cd ms-file-s3-acl-demo && docker compose up --build
+```
+
+### Native Signing Demo (`ms-file-native-signing-demo/`)
+
+Uses SeaweedFS Filer HTTP REST API with JWT HS256 tokens (`security.toml`). Authorization is enforced entirely in the application layer. Key design decisions:
+- Two signing keys: `jwt.filer_signing.key` (write: PUT/POST/DELETE) and `jwt.filer_signing.read.key` (read: GET/HEAD)
+- `FilerJwtTokenService` generates a fresh token per request — tokens are short-lived (30 s)
+- `FilerAuthorizationService` is the only path/operation access guard; SeaweedFS validates only token signature and expiry
+- No presigned URLs — client uploads are proxied through the application
+- `FilerHttpClient` handles token attachment; `FilerAuthorizationService` handles business rules (separate concerns)
+- `GlobalExceptionHandler` maps `AccessDeniedException` → 403 (otherwise Spring returns 500)
+
+```bash
+cd ms-file-native-signing-demo && docker compose up --build
 ```
 
 ## Configuration
